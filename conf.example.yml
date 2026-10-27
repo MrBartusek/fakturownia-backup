@@ -1,0 +1,7 @@
+fakturownia:
+  # Ustawienia -> API -> Zobacz, rodzaj: "Token z prefiksem"
+  # Albo zwykły token z dopisaną subdomeną: <token>/<nazwa> dla adresu <nazwa>.fakturownia.pl
+  api_token: twoj-token/twoja-firma
+
+# Harmonogram pobierania faktur w formacie cron
+cron: '0 3 * * *'

@@ -1,0 +1,10 @@
+services:
+  fakturownia-backup:
+    # build: . # Build the image locally instead (needs the whole repo)
+    image: mrbartusek/fakturownia-backup:latest
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Warsaw
+    volumes:
+      - ./conf.yml:/config/conf.yml:ro
+      - ./fakturownia:/data
