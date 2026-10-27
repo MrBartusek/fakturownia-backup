@@ -4,4 +4,7 @@ fakturownia:
   api_token: twoj-token/twoja-firma
 
 # Harmonogram pobierania faktur w formacie cron
-cron: '0 3 * * *'
+cron: '0 1 * * *'
+
+# Pobierz faktury od razu po uruchomieniu, nie czekając na harmonogram.
+run_on_start: true
