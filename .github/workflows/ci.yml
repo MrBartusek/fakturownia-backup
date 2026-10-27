@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   check:
+    name: Lint & build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,6 +37,7 @@ jobs:
         run: pnpm build
 
   docker:
+    name: Docker image
     needs: check
     runs-on: ubuntu-latest
     permissions:
