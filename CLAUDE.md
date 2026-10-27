@@ -12,3 +12,7 @@ The full reference (Polish, ~120 KB) is https://raw.githubusercontent.com/faktur
 - Filter by date with `period=` (`all`, `last_12_months`, …) or `period=more&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD`.
 - The list returns sales invoices only by default. Expense invoices need `income=no`.
 - Download PDF: `GET /invoices/<id>.pdf`.
+
+## Code style
+
+- Use TypeScript `private` for class members, not JS `#private` fields.

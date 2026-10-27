@@ -1,10 +1,10 @@
 fakturownia:
   # Ustawienia -> API -> Zobacz, rodzaj: "Token z prefiksem"
   # Albo zwykły token z dopisaną subdomeną: <token>/<nazwa> dla adresu <nazwa>.fakturownia.pl
-  api_token: twoj-token/twoja-firma
+  token: twoj-token/twoja-firma
+
+# Folder, do którego pobierane są faktury (w Dockerze zostaw /fakturownia)
+output: /fakturownia
 
 # Harmonogram pobierania faktur w formacie cron
 cron: '0 1 * * *'
-
-# Pobierz faktury od razu po uruchomieniu, nie czekając na harmonogram.
-run_on_start: true

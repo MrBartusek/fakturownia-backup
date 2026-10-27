@@ -13,6 +13,9 @@ export default defineConfig(
         projectService: true,
       },
     },
+    rules: {
+      'no-restricted-syntax': ['error', ':function FunctionDeclaration'],
+    },
   },
   eslintConfigPrettier,
 );

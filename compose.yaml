@@ -7,4 +7,4 @@ services:
       - TZ=Europe/Warsaw
     volumes:
       - ./conf.yml:/config/conf.yml:ro
-      - ./fakturownia:/data
+      - ./fakturownia:/fakturownia

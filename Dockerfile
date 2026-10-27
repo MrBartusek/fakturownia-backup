@@ -27,4 +27,5 @@ COPY package.json ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 USER node
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["node", "dist/index.js"]
+CMD ["/config/conf.yml"]
