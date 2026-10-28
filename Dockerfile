@@ -27,5 +27,5 @@ COPY package.json ./
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 USER node
-ENTRYPOINT ["node", "dist/index.js"]
-CMD ["/config/conf.yml"]
+# Extra arguments like `--full` are appended: docker compose run --rm fakturownia-backup --full
+ENTRYPOINT ["node", "dist/index.js", "/config/conf.yml"]
