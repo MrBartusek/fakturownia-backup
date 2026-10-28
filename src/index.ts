@@ -4,7 +4,7 @@ import { loadConfig, type Config } from './config.ts';
 import { FakturowniaClient } from './fakturownia/client.ts';
 import type { Department } from './fakturownia/types.ts';
 import { Logger } from './logger.ts';
-import { syncInvoices } from './sync.ts';
+import { syncInvoices } from './sync/sync.ts';
 
 async function main() {
   let config: Config;

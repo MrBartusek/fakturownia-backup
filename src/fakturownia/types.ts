@@ -1,9 +1,10 @@
 export type Invoice = {
   id: number;
   number: string;
+  kind: string;
   issue_date: string;
   updated_at: string;
-  department_id: number;
+  department_id: number | null;
   [key: string]: unknown;
 };
 
