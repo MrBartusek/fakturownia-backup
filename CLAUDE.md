@@ -19,8 +19,9 @@ The help center (Polish) at https://pomoc.fakturownia.pl explains app concepts t
 
 The goal is a second copy of invoices in case Fakturownia loses data or the account ends. Polish law requires keeping invoices until the tax limitation period ends (5 years from the end of the year the tax was due, often longer), so the backup never deletes anything on its own.
 
-- For KSeF invoices, the legal invoice is the FA(3) XML (`GET /invoices/<id>/attachment?kind=gov`). The PDF is only a visualization.
-- For cost invoices outside KSeF, the legal document is the original file the company received (`GET /invoices/<id>/attachments_zip.json`), not Fakturownia's rendered PDF.
+- For KSeF invoices, the legal invoice is the FA(3) XML. The PDF is only a visualization.
+- For cost invoices outside KSeF, the legal document is the original file the company received, not Fakturownia's rendered PDF.
+- Both are invoice attachments: `GET /invoices/<id>/attachments_zip.json` returns them in one ZIP, the KSeF XML together with the UPO for sales invoices.
 
 ## Design limits
 
