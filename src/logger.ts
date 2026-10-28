@@ -1,30 +1,21 @@
-import { inspect, styleText } from 'node:util';
-
-const levels = {
-  info: { color: 'green', stream: process.stdout },
-  warn: { color: 'yellow', stream: process.stderr },
-  error: { color: 'red', stream: process.stderr },
-} as const;
-
-type Level = keyof typeof levels;
+import { inspect } from 'node:util';
+import chalk from 'chalk';
 
 export class Logger {
   static info(message: string) {
-    Logger.write('info', message);
+    console.log(`${Logger.time()} ${chalk.green('INFO')} ${message}`);
   }
 
   static warn(message: string) {
-    Logger.write('warn', message);
+    console.error(`${Logger.time()} ${chalk.yellow('WARN')} ${message}`);
   }
 
   static error(message: string, error?: unknown) {
-    Logger.write('error', error === undefined ? message : `${message}\n${inspect(error)}`);
+    const details = error === undefined ? '' : `\n${inspect(error)}`;
+    console.error(`${Logger.time()} ${chalk.red('ERROR')} ${message}${details}`);
   }
 
-  private static write(level: Level, message: string) {
-    const { color, stream } = levels[level];
-    const time = styleText('gray', new Date().toLocaleString('sv-SE'), { stream });
-    const label = styleText(color, level.toUpperCase(), { stream });
-    stream.write(`${time} ${label} ${message}\n`);
+  private static time() {
+    return chalk.gray(new Date().toLocaleString('sv-SE'));
   }
 }
