@@ -1,7 +1,10 @@
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { Cron } from 'croner';
 import { parse } from 'yaml';
 import * as z from 'zod';
+import { Logger } from './logger.ts';
+import chalk from 'chalk';
 
 const configSchema = z.object({
   fakturownia: z
@@ -18,7 +21,10 @@ const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
-export async function loadConfig(path: string): Promise<Config> {
+export async function loadConfig(file: string): Promise<Config> {
+  const path = resolve(file);
+  Logger.info(`Reading config in ${chalk.gray(path)}`);
+
   let data: unknown;
   try {
     data = parse(await readFile(path, 'utf8'));
