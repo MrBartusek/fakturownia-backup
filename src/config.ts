@@ -6,7 +6,7 @@ import * as z from 'zod';
 import { Logger } from './logger.ts';
 import chalk from 'chalk';
 
-const configSchema = z.object({
+const CONFIG_SCHEMA = z.object({
   fakturownia: z
     .object({
       token: z.string().regex(/^[^/\s]+\/[a-z0-9-]+$/i, 'Expected <token>/<domain>'),
@@ -22,29 +22,30 @@ const configSchema = z.object({
   cron: z.string().refine(isValidCron, 'Invalid cron expression').nullish(),
 });
 
-export type Config = z.infer<typeof configSchema>;
+export type Config = z.infer<typeof CONFIG_SCHEMA>;
 
-export async function loadConfig(file: string): Promise<Config> {
-  const path = resolve(file);
-  Logger.info(`Reading config in ${chalk.gray(path)}`);
+export async function loadConfig(filePath: string): Promise<Config> {
+  const absolutePath = resolve(filePath);
+  Logger.info(`Reading config in ${chalk.gray(absolutePath)}`);
 
   let data: unknown;
   try {
-    data = parse(await readFile(path, 'utf8'));
+    const contents = await readFile(absolutePath, 'utf8');
+    data = parse(contents);
   } catch (error) {
-    throw new Error(`Cannot load config ${path}`, { cause: error });
+    throw new Error(`Cannot load config ${absolutePath}`, { cause: error });
   }
 
-  const result = configSchema.safeParse(data);
+  const result = CONFIG_SCHEMA.safeParse(data);
   if (!result.success) {
-    throw new Error(`Invalid config ${path}:\n${z.prettifyError(result.error)}`);
+    throw new Error(`Invalid config ${absolutePath}:\n${z.prettifyError(result.error)}`);
   }
   return result.data;
 }
 
-function isValidCron(value: string) {
+function isValidCron(expression: string) {
   try {
-    new Cron(value);
+    new Cron(expression);
     return true;
   } catch {
     return false;
