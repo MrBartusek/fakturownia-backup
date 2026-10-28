@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import type { Config } from '../config.ts';
-import type { Department, Invoice } from './types.ts';
+import type { Department, Invoice, InvoiceType } from './types.ts';
 
 const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
   version: string;
 };
 const userAgent = `fakturownia-backup/${version} (+https://github.com/MrBartusek/fakturownia-backup)`;
+
+export const INVOICES_PER_PAGE = 100;
 
 export class FakturowniaClient {
   private readonly token: string;
@@ -21,14 +23,14 @@ export class FakturowniaClient {
     return departments.filter((d) => !d.deleted);
   }
 
-  async listInvoices(income: boolean, page: number): Promise<Invoice[]> {
+  async listInvoices(type: InvoiceType, page: number): Promise<Invoice[]> {
     return this.request('/invoices.json', {
       period: 'all',
       order: 'updated_at.desc',
-      per_page: '100',
+      per_page: String(INVOICES_PER_PAGE),
       page: String(page),
       include_positions: 'true',
-      income: income ? 'yes' : 'no',
+      income: type === 'income' ? 'yes' : 'no',
     }).then((r) => r.json() as Promise<Invoice[]>);
   }
 

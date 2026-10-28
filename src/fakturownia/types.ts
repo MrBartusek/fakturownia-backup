@@ -14,3 +14,5 @@ export type Department = {
   tax_no: string | null;
   deleted: boolean;
 };
+
+export type InvoiceType = 'income' | 'expense';

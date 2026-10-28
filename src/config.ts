@@ -15,7 +15,10 @@ const configSchema = z.object({
       const [apiToken = '', domain = ''] = token.split('/');
       return { token: apiToken, domain };
     }),
-  output: z.string().default('/fakturownia'),
+  output: z
+    .string()
+    .default('/fakturownia')
+    .transform((path) => resolve(path)),
   cron: z.string().refine(isValidCron, 'Invalid cron expression').nullish(),
 });
 
