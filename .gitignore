@@ -150,3 +150,6 @@ vite.config.ts.timestamp-*
 
 # fakturownia-backup config with the real API token
 conf.yml
+
+# Downloaded invoices (dev output and the compose volume)
+/fakturownia/
