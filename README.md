@@ -21,6 +21,14 @@ nano conf.yml # Tutaj utwórz swoją konfigurację
 docker compose up -d
 ```
 
+## Jak sprawdzić wszystkie faktury
+
+Normalnie program sprawdza i pobiera tylko te faktury, które zmieniły się w Fakturowni. Jeśli wolisz uruchomić pełny skan, użyj parametru `--full` (przy dużej ilości faktur może to chwilę zająć):
+
+```sh
+docker compose run --rm fakturownia-backup --full
+```
+
 ## Pytania?
 
 Jeśli coś jest niejasne albo masz pomysł na rozwój projektu, [otwórz issue](https://github.com/MrBartusek/fakturownia-backup/issues). Pull requesty są mile widziane!

@@ -1,17 +1,26 @@
+import { parseArgs } from 'node:util';
 import chalk from 'chalk';
 import { Cron } from 'croner';
 import { loadConfig, type Config } from './config.ts';
 import { FakturowniaClient } from './fakturownia/client.ts';
 import type { Department } from './fakturownia/types.ts';
 import { Logger } from './logger.ts';
-import { syncInvoices } from './sync/sync.ts';
+import { syncInvoices, type SyncOptions } from './sync/sync.ts';
 
 async function main() {
   let config: Config;
   let client: FakturowniaClient;
+  let options: SyncOptions;
 
   try {
-    config = await loadConfig(process.argv[2] ?? 'conf.yml');
+    const { values, positionals } = parseArgs({
+      options: { full: { type: 'boolean', default: false } },
+      allowPositionals: true,
+    });
+    const configPath = positionals[0] ?? 'conf.yml';
+    options = values;
+
+    config = await loadConfig(configPath);
     client = new FakturowniaClient(config.fakturownia);
 
     const departments = await client.listDepartments();
@@ -21,13 +30,16 @@ async function main() {
     process.exit(1);
   }
 
-  if (!config.cron) {
+  if (options.full) {
+    Logger.warn(`Running with ${chalk.blue.bold('--full')}`);
+    await run(client, config.output, options);
+  } else if (!config.cron) {
     Logger.info('No cron schedule set, downloading once!');
-    await run(client, config.output);
+    await run(client, config.output, options);
   } else {
-    const job = new Cron(config.cron, { protect: true }, async (self) => {
-      await run(client, config.output);
-      logNextRun(self);
+    const job = new Cron(config.cron, { protect: true }, async (runningJob) => {
+      await run(client, config.output, options);
+      logNextRun(runningJob);
     });
 
     for (const signal of ['SIGINT', 'SIGTERM'] as const) {
@@ -49,21 +61,24 @@ function logStartup(client: FakturowniaClient, departments: Department[]) {
 
   for (const department of departments) {
     const name = chalk.yellow(department.name.trim());
-    const nip = department.tax_no ? chalk.gray(` (NIP ${department.tax_no})`) : '';
-    Logger.info(`- ${name}${nip}`);
+    const taxNumber = department.tax_no ? chalk.gray(` (NIP ${department.tax_no})`) : '';
+    Logger.info(`- ${name}${taxNumber}`);
   }
 }
 
 function logNextRun(job: Cron) {
-  const next = job.nextRun();
-  if (next) {
-    Logger.info(`Next run: ${next.toLocaleString('sv-SE')} (${job.getPattern()})`);
+  const nextRunDate = job.nextRun();
+  if (nextRunDate) {
+    Logger.info(`Next run: ${nextRunDate.toLocaleString('sv-SE')} (${job.getPattern()})`);
   }
 }
 
-async function run(client: FakturowniaClient, output: string) {
+async function run(client: FakturowniaClient, output: string, options: SyncOptions) {
   try {
-    await syncInvoices(client, output);
+    const success = await syncInvoices(client, output, options);
+    if (!success) {
+      process.exitCode = 1;
+    }
   } catch (error) {
     Logger.error('Invoices download job failed', error);
     process.exitCode = 1;
