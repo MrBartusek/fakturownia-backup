@@ -15,6 +15,17 @@ The help center (Polish) at https://pomoc.fakturownia.pl explains app concepts t
 - The list returns sales invoices only by default. Expense invoices need `income=no`.
 - Download PDF: `GET /invoices/<id>.pdf`.
 
+## Compliance
+
+The goal is a second copy of invoices in case Fakturownia loses data or the account ends. Polish law requires keeping invoices until the tax limitation period ends (5 years from the end of the year the tax was due, often longer), so the backup never deletes anything on its own.
+
+- For KSeF invoices, the legal invoice is the FA(3) XML (`GET /invoices/<id>/attachment?kind=gov`). The PDF is only a visualization.
+- For cost invoices outside KSeF, the legal document is the original file the company received (`GET /invoices/<id>/attachments_zip.json`), not Fakturownia's rendered PDF.
+
+## Design limits
+
+The target is a company with 100,000 invoices over 10 years, running in a container with 256 MB of memory. Check memory use against this when changing the sync. Companies much bigger than this are not the audience.
+
 ## Code style
 
 - Use TypeScript `private` for class members, not JS `#private` fields.
