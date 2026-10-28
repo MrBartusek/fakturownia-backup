@@ -1,21 +1,63 @@
+import { readFileSync } from 'node:fs';
 import type { Config } from '../config.ts';
+import type { Department, Invoice } from './types.ts';
 
-export type Company = {
-  name: string;
-  taxNo: string;
+const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+  version: string;
 };
+const userAgent = `fakturownia-backup/${version} (+https://github.com/MrBartusek/fakturownia-backup)`;
 
 export class FakturowniaClient {
   private readonly token: string;
-  private readonly baseUrl: string;
+  readonly baseUrl: string;
 
   constructor({ token, domain }: Config['fakturownia']) {
     this.token = token;
     this.baseUrl = `https://${domain}.fakturownia.pl`;
   }
 
-  // Mock until the departments request exists.
-  getCompany(): Promise<Company> {
-    return Promise.resolve({ name: 'Example Company', taxNo: '0000000000' });
+  async listDepartments(): Promise<Department[]> {
+    const departments = await this.request('/departments.json').then((r) => r.json() as Promise<Department[]>);
+    return departments.filter((d) => !d.deleted);
+  }
+
+  async listInvoices(income: boolean, page: number): Promise<Invoice[]> {
+    return this.request('/invoices.json', {
+      period: 'all',
+      order: 'updated_at.desc',
+      per_page: '100',
+      page: String(page),
+      include_positions: 'true',
+      income: income ? 'yes' : 'no',
+    }).then((r) => r.json() as Promise<Invoice[]>);
+  }
+
+  async downloadPdf(id: number): Promise<Uint8Array> {
+    const response = await this.request(`/invoices/${id}.pdf`, {}, 'application/pdf');
+    const pdf = new Uint8Array(await response.arrayBuffer());
+
+    if (new TextDecoder().decode(pdf.subarray(0, 4)) !== '%PDF') {
+      throw new Error(`/invoices/${id}.pdf is not a PDF`);
+    }
+
+    return pdf;
+  }
+
+  private async request(
+    path: string,
+    params: Record<string, string> = {},
+    accept = 'application/json',
+  ): Promise<Response> {
+    const url = new URL(path, this.baseUrl);
+    url.search = new URLSearchParams(params).toString();
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.token}`, Accept: accept, 'User-Agent': userAgent },
+    });
+
+    if (!response.ok) {
+      throw new Error(`${path} failed: ${response.status} ${response.statusText}`);
+    }
+    return response;
   }
 }
