@@ -1,6 +1,8 @@
+import chalk from 'chalk';
 import { Cron } from 'croner';
 import { loadConfig, type Config } from './config.ts';
 import { FakturowniaClient } from './fakturownia/client.ts';
+import type { Department } from './fakturownia/types.ts';
 import { Logger } from './logger.ts';
 import { syncInvoices } from './sync.ts';
 
@@ -12,8 +14,8 @@ async function main() {
     config = await loadConfig(process.argv[2] ?? 'conf.yml');
     client = new FakturowniaClient(config.fakturownia);
 
-    const company = await client.getCompany();
-    Logger.info(`Logged in as ${company.name} (NIP ${company.taxNo})`);
+    const departments = await client.listDepartments();
+    logStartup(client, departments);
   } catch (error) {
     Logger.error('Startup failed', error);
     process.exit(1);
@@ -23,7 +25,10 @@ async function main() {
     Logger.info('No cron schedule set, downloading once!');
     await run(client, config.output);
   } else {
-    const job = new Cron(config.cron, { protect: true }, () => run(client, config.output));
+    const job = new Cron(config.cron, { protect: true }, async (self) => {
+      await run(client, config.output);
+      logNextRun(self);
+    });
 
     for (const signal of ['SIGINT', 'SIGTERM'] as const) {
       process.on(signal, () => {
@@ -32,7 +37,27 @@ async function main() {
       });
     }
 
-    Logger.info(`Next run: ${job.nextRun()?.toLocaleString('sv-SE')}`);
+    logNextRun(job);
+  }
+}
+
+function logStartup(client: FakturowniaClient, departments: Department[]) {
+  const host = chalk.blue.bold(new URL(client.baseUrl).host);
+  const plural = departments.length === 1 ? '' : 's';
+  const colon = departments.length > 0 ? ':' : '';
+  Logger.info(`Logged in as ${host} with ${departments.length} department${plural}${colon}`);
+
+  for (const department of departments) {
+    const name = chalk.yellow(department.name.trim());
+    const nip = department.tax_no ? chalk.gray(` (NIP ${department.tax_no})`) : '';
+    Logger.info(`- ${name}${nip}`);
+  }
+}
+
+function logNextRun(job: Cron) {
+  const next = job.nextRun();
+  if (next) {
+    Logger.info(`Next run: ${next.toLocaleString('sv-SE')} (${job.getPattern()})`);
   }
 }
 
