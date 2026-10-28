@@ -6,6 +6,8 @@ Self-hosted backup of [fakturownia.pl](https://fakturownia.pl) invoices, in the 
 
 The full reference (Polish, ~120 KB) is https://raw.githubusercontent.com/fakturownia/API/refs/heads/master/README.md. Fetch it when you need something not listed here.
 
+The help center (Polish) at https://pomoc.fakturownia.pl explains app concepts the API docs assume, like departments (działy) vs. companies.
+
 - Base URL is per account: `https://<domain>.fakturownia.pl`. Auth is the `api_token` query parameter.
 - The config takes a "Token z prefiksem" (Ustawienia -> API -> Zobacz), shaped `<token>/<domain>`. The domain for the base URL comes from that suffix. The official docs don't describe this format, and their menu path for the token is outdated.
 - List invoices: `GET /invoices.json`. Paginate with `page=` and `per_page=` (max 100).
