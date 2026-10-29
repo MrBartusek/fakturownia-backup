@@ -32,3 +32,9 @@ docker compose run --rm fakturownia-backup --full
 ## Pytania?
 
 Jeśli coś jest niejasne albo masz pomysł na rozwój projektu, [otwórz issue](https://github.com/MrBartusek/fakturownia-backup/issues). Pull requesty są mile widziane!
+
+## Licencja
+
+Program jest darmowy i udostępniony na [licencji MIT](https://github.com/MrBartusek/fakturownia-backup/blob/main/LICENSE), bez żadnej gwarancji. Autor nie odpowiada za brakujące lub usunięte pliki ani za skutki innych błędów oprogramowania. Obowiązek przechowywania faktur wynikający z ustawy o VAT nadal spoczywa na Twojej firmie.
+
+Projekt fakturownia-backup nie jest powiązany z Fakturownia sp. z o.o. ani przez nią wspierany.
