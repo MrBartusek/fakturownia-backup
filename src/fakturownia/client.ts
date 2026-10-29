@@ -32,6 +32,9 @@ export class FakturowniaClient {
       page: String(page),
       include_positions: 'true',
       income: type === 'income' ? 'yes' : 'no',
+      'additional_fields[invoice]':
+        'corrected_content_before,corrected_content_after,correction_reason,procedure_vat_margin,seller_bdo_no',
+      include: 'descriptions,recipients,issuers,transaction_orders,transaction_contracts,transaction_batches',
     }).then((response) => response.json() as Promise<Invoice[]>);
   }
 
