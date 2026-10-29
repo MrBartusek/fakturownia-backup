@@ -1,4 +1,3 @@
-import { relative } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 import chalk from 'chalk';
@@ -191,8 +190,7 @@ async function syncInvoice(context: SyncContext, invoice: Invoice, type: Invoice
   let movedNote = '';
   if (saved && saved.path !== path) {
     await context.metadata.remove(saved);
-    const previousPath = relative(context.output, saved.path);
-    movedNote = chalk.gray(` (moved from ${previousPath})`);
+    movedNote = chalk.gray(` (moved from ${saved.path})`);
   }
 
   // After `remove()`: a number change keeps the invoice in the same month file under the same id
@@ -201,8 +199,7 @@ async function syncInvoice(context: SyncContext, invoice: Invoice, type: Invoice
   // The same invoice can come up again later in this run when the listing shifts
   context.pdfPaths.set(invoice.id, [path]);
 
-  const relativePath = relative(context.output, path);
-  Logger.info(`Downloaded ${label} to ${chalk.gray(relativePath)}${movedNote}`);
+  Logger.info(`Downloaded ${label} to ${chalk.gray(path)}${movedNote}`);
 
   await setTimeout(DOWNLOAD_DELAY_MS);
 
@@ -215,8 +212,7 @@ function warnMissing(context: SyncContext) {
       continue;
     }
     for (const path of paths) {
-      const relativePath = relative(context.output, path);
-      Logger.warn(`File ${chalk.gray(relativePath)} no longer exists in the Fakturownia account, consider deleting it`);
+      Logger.warn(`File ${chalk.gray(path)} no longer exists in the Fakturownia account, consider deleting it`);
     }
   }
 }
