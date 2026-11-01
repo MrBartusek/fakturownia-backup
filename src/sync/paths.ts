@@ -1,5 +1,6 @@
 import { basename, join } from 'node:path';
 import type { Department, Invoice } from '../fakturownia/types.ts';
+import { sanitizeFileName, splitDate, truncateToBytes } from '../utils.ts';
 
 export const FALLBACK_FOLDER = '_';
 const NO_NUMBER_NAME = 'bez-numeru';
@@ -52,29 +53,6 @@ export function invoiceIdFromFile(file: string): number | undefined {
   return Number(id);
 }
 
-function splitDate(date: string) {
-  const [year, month, day] = date.split('-');
-  if (!year || !month || !day) {
-    throw new Error(`Invalid date: ${date}`);
-  }
-  return { year, month, day };
-}
-
 function folderName({ id, shortcut, name }: Department) {
   return sanitizeFileName(shortcut) || sanitizeFileName(name) || String(id);
-}
-
-function truncateToBytes(value: string, maxBytes: number) {
-  const characters = Array.from(value);
-  while (Buffer.byteLength(characters.join('')) > maxBytes) {
-    characters.pop();
-  }
-  return characters.join('');
-}
-
-function sanitizeFileName(value: string) {
-  return value
-    .replaceAll(/[/\\:*?"<>|]/g, '-')
-    .replace(/[\s.]+$/, '')
-    .trim();
 }

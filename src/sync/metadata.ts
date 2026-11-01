@@ -3,6 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import chalk from 'chalk';
 import type { Invoice } from '../fakturownia/types.ts';
 import { Logger } from '../logger.ts';
+import { omit } from '../utils.ts';
 import { readJson, writeJson } from './files.ts';
 import { invoiceFileName } from './paths.ts';
 
@@ -118,14 +119,4 @@ export class MetadataStore {
     this.months.set(folder, invoices);
     return invoices;
   }
-}
-
-export function omit(invoice: Invoice, fields: string[]): Invoice {
-  const keptEntries: [string, unknown][] = [];
-  for (const [key, value] of Object.entries(invoice)) {
-    if (!fields.includes(key)) {
-      keptEntries.push([key, value]);
-    }
-  }
-  return Object.fromEntries(keptEntries) as Invoice;
 }
