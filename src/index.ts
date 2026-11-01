@@ -75,10 +75,7 @@ function logNextRun(job: Cron) {
 
 async function run(client: FakturowniaClient, output: string, options: SyncOptions) {
   try {
-    const success = await syncInvoices(client, output, options);
-    if (!success) {
-      process.exitCode = 1;
-    }
+    await syncInvoices(client, output, options);
   } catch (error) {
     Logger.error('Invoices download job failed', error);
     process.exitCode = 1;

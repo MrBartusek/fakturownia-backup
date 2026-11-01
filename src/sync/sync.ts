@@ -49,7 +49,7 @@ type SyncContext = {
   folders: Map<number | null, string>;
   pdfPaths: Map<number, string[]>;
   metadata: MetadataStore;
-  counts: { downloaded: number; updated: number; failed: number };
+  counts: { downloaded: number; updated: number };
   listedIds: Set<number>;
 };
 
@@ -59,7 +59,7 @@ export type SyncOptions = {
   full: boolean;
 };
 
-export async function syncInvoices(client: FakturowniaClient, output: string, options: SyncOptions): Promise<boolean> {
+export async function syncInvoices(client: FakturowniaClient, output: string, options: SyncOptions) {
   await setTimeout(DOWNLOAD_DELAY_MS);
   const startTime = performance.now();
   const [state, departments, pdfPaths] = await Promise.all([
@@ -79,7 +79,7 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
     folders: departmentFolders(departments),
     pdfPaths,
     metadata: new MetadataStore(),
-    counts: { downloaded: 0, updated: 0, failed: 0 },
+    counts: { downloaded: 0, updated: 0 },
     listedIds: new Set(),
   };
   let finished = false;
@@ -92,13 +92,12 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
   } finally {
     // State first: if the flush below fails too, the next run still knows to list everything
     const now = Math.floor(Date.now() / 1000);
-    const succeeded = finished && context.counts.failed === 0;
-    const completedNow = fullListing && succeeded;
+    const completedNow = fullListing && finished;
     await saveState(output, {
       complete: state.complete || completedNow,
       completedAt: completedNow ? now : state.completedAt,
-      failed: !succeeded,
-      failedAt: succeeded ? state.failedAt : now,
+      failed: !finished,
+      failedAt: finished ? state.failedAt : now,
       lastRunAt: now,
     });
     await context.metadata.flush();
@@ -112,13 +111,11 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
     }
   }
 
-  const { downloaded, updated, failed } = context.counts;
+  const { downloaded, updated } = context.counts;
   const elapsedMilliseconds = performance.now() - startTime;
   const seconds = (elapsedMilliseconds / 1000).toFixed(1);
 
-  Logger.info(`Sync done: ${downloaded} downloaded, ${updated} metadata updated, ${failed} failed in ${seconds}s`);
-
-  return failed === 0;
+  Logger.info(`Sync done: ${downloaded} downloaded, ${updated} metadata updated in ${seconds}s`);
 }
 
 async function syncInvoiceType(context: SyncContext, type: InvoiceType, fullListing: boolean) {
@@ -150,15 +147,10 @@ async function syncPage(context: SyncContext, invoices: Invoice[], type: Invoice
   for (const invoice of invoices) {
     context.listedIds.add(invoice.id);
 
-    try {
-      const result = await syncInvoice(context, invoice, type);
-      if (result !== 'unchanged') {
-        context.counts[result]++;
-        changed = true;
-      }
-    } catch (error) {
-      Logger.error(`Failed to sync invoice ${invoice.number}`, error);
-      context.counts.failed++;
+    const result = await syncInvoice(context, invoice, type);
+    if (result !== 'unchanged') {
+      context.counts[result]++;
+      changed = true;
     }
   }
 

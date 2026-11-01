@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { Config } from '../config.ts';
+import { isPdf } from '../utils.ts';
+import { fetchWithRetries } from './fetch.ts';
 import type { Department, Invoice, InvoiceType } from './types.ts';
 
 const PACKAGE_JSON_URL = new URL('../../package.json', import.meta.url);
@@ -18,14 +20,13 @@ export class FakturowniaClient {
   }
 
   async listDepartments(): Promise<Department[]> {
-    const departments = await this.request('/departments.json').then(
-      (response) => response.json() as Promise<Department[]>,
-    );
+    const body = await this.request('/departments.json');
+    const departments = JSON.parse(body.toString()) as Department[];
     return departments.filter((department) => !department.deleted);
   }
 
   async listInvoices(type: InvoiceType, page: number): Promise<Invoice[]> {
-    return this.request('/invoices.json', {
+    const body = await this.request('/invoices.json', {
       period: 'all',
       order: 'updated_at.desc',
       per_page: String(INVOICES_PER_PAGE),
@@ -35,16 +36,14 @@ export class FakturowniaClient {
       'additional_fields[invoice]':
         'corrected_content_before,corrected_content_after,correction_reason,procedure_vat_margin,seller_bdo_no',
       include: 'descriptions,recipients,issuers,transaction_orders,transaction_contracts,transaction_batches',
-    }).then((response) => response.json() as Promise<Invoice[]>);
+    });
+    return JSON.parse(body.toString()) as Invoice[];
   }
 
-  async downloadPdf(id: number): Promise<Uint8Array> {
-    const response = await this.request(`/invoices/${id}.pdf`, {}, 'application/pdf');
-    const body = await response.arrayBuffer();
-    const pdf = new Uint8Array(body);
+  async downloadPdf(id: number): Promise<Buffer> {
+    const pdf = await this.request(`/invoices/${id}.pdf`, {}, 'application/pdf');
 
-    const header = new TextDecoder().decode(pdf.subarray(0, 4));
-    if (header !== '%PDF') {
+    if (!isPdf(pdf)) {
       throw new Error(`/invoices/${id}.pdf is not a PDF`);
     }
 
@@ -55,17 +54,16 @@ export class FakturowniaClient {
     path: string,
     queryParameters: Record<string, string> = {},
     accept = 'application/json',
-  ): Promise<Response> {
+  ): Promise<Buffer> {
     const url = new URL(path, this.baseUrl);
     url.search = new URLSearchParams(queryParameters).toString();
 
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${this.token}`, Accept: accept, 'User-Agent': USER_AGENT },
-    });
+    const headers = {
+      Authorization: `Bearer ${this.token}`,
+      Accept: accept,
+      'User-Agent': USER_AGENT,
+    };
 
-    if (!response.ok) {
-      throw new Error(`${path} failed: ${response.status} ${response.statusText}`);
-    }
-    return response;
+    return fetchWithRetries(url, headers);
   }
 }
