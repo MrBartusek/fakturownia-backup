@@ -3,6 +3,7 @@ services:
     # build: . # Build the image locally instead (needs the whole repo)
     image: mrbartusek/fakturownia-backup:latest
     restart: unless-stopped
+    # user: '1000:1000' # Owner of ./fakturownia and conf.yml, if that isn't UID 1000
     environment:
       - TZ=Europe/Warsaw
     volumes:
