@@ -37,6 +37,10 @@ export function invoiceFileName(invoice: Invoice): string {
   return `${invoiceNumber}_${invoice.kind}_${invoice.id}.pdf`;
 }
 
+export function attachmentsPath(pdfPath: string): string {
+  return pdfPath.replace(/\.pdf$/, '.zip');
+}
+
 /**
  * Reads the id from a `<number>_<kind>_<id>.pdf` file name, or returns undefined for any other file.
  */

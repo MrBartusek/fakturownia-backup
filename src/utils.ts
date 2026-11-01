@@ -3,6 +3,11 @@ export function isPdf(file: Buffer): boolean {
   return header === '%PDF';
 }
 
+export function isZip(file: Buffer): boolean {
+  const header = file.subarray(0, 4).toString();
+  return header === 'PK\x03\x04';
+}
+
 export function omit<T extends object>(value: T, fields: string[]): T {
   const keptEntries: [string, unknown][] = [];
   for (const [key, fieldValue] of Object.entries(value)) {

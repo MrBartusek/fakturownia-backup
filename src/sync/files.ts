@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { Logger } from '../logger.ts';
 
 const TEMP_FILE_SUFFIX = '.tmp';
-const TEMP_FILE_PATTERN = /\.(pdf|json)\.tmp$/;
+const TEMP_FILE_PATTERN = /\.(pdf|json|zip)\.tmp$/;
 
 export async function readJson(file: string): Promise<unknown> {
   try {

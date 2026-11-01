@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { setTimeout } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 import chalk from 'chalk';
@@ -7,7 +9,7 @@ import { Logger } from '../logger.ts';
 import { omit } from '../utils.ts';
 import { writeAtomic } from './files.ts';
 import { LINK_FIELDS, MetadataStore } from './metadata.ts';
-import { departmentFolders, FALLBACK_FOLDER, invoicePath } from './paths.ts';
+import { attachmentsPath, departmentFolders, FALLBACK_FOLDER, invoicePath } from './paths.ts';
 import { scanInvoices } from './scan.ts';
 import { loadState, saveState } from './state.ts';
 
@@ -41,6 +43,7 @@ const IGNORED_FIELDS = [
   'show_attachments',
   'products_margin',
   'exchange_difference',
+  'attachments',
 ];
 
 type SyncContext = {
@@ -115,7 +118,7 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
   const elapsedMilliseconds = performance.now() - startTime;
   const seconds = (elapsedMilliseconds / 1000).toFixed(1);
 
-  Logger.info(`Sync done: ${downloaded} downloaded, ${updated} metadata updated in ${seconds}s`);
+  Logger.info(`Sync done: ${downloaded} downloaded, ${updated} updated in ${seconds}s`);
 }
 
 async function syncInvoiceType(context: SyncContext, type: InvoiceType, fullListing: boolean) {
@@ -161,29 +164,55 @@ async function syncPage(context: SyncContext, invoices: Invoice[], type: Invoice
 async function syncInvoice(context: SyncContext, invoice: Invoice, type: InvoiceType): Promise<InvoiceResult> {
   const paths = context.pdfPaths.get(invoice.id) ?? [];
   const saved = await context.metadata.find(invoice.id, paths);
+  const label = `${chalk.bold(invoice.number)} ${chalk.yellow(`(${type})`)}`;
 
-  if (saved?.invoice.updated_at === invoice.updated_at) {
+  const invoiceUpdated = saved?.invoice.updated_at !== invoice.updated_at;
+  const pdfChanged = invoiceUpdated && (!saved || pdfDiffers(saved.invoice, invoice));
+
+  // The PDF stays where it is, even if its folder name would differ now
+  const folder = context.folders.get(invoice.department_id) ?? FALLBACK_FOLDER;
+  const path = saved && !pdfChanged ? saved.path : invoicePath(context.output, folder, invoice);
+  const moved = saved && saved.path !== path;
+
+  const zipPath = attachmentsPath(path);
+  const zipExists = existsSync(zipPath);
+  const hasAttachments = invoice.attachments.length > 0;
+  const attachmentsChanged =
+    hasAttachments && (!zipExists || !isDeepStrictEqual(saved?.invoice.attachments, invoice.attachments));
+
+  if (!hasAttachments && zipExists) {
+    Logger.warn(`File ${chalk.gray(zipPath)} no longer exists in the Fakturownia account, consider deleting it`);
+  }
+
+  if (!invoiceUpdated && !attachmentsChanged) {
     return 'unchanged';
   }
 
-  const label = `${chalk.bold(invoice.number)} ${chalk.yellow(`(${type})`)}`;
+  // Metadata comes last, so a failed download makes the next run try the whole invoice again
+  if (pdfChanged) {
+    const pdf = await context.client.downloadPdf(invoice.id);
+    await writeAtomic(path, pdf);
 
-  // The PDF stays where it is, even if its folder name would differ now
-  if (saved && !pdfDiffers(saved.invoice, invoice)) {
-    await context.metadata.set(saved.path, invoice);
-    Logger.info(`Updated metadata of ${label}`);
-    return 'updated';
+    const movedNote = moved ? chalk.gray(` (moved from ${saved.path})`) : '';
+    Logger.info(`Downloaded ${label} to ${chalk.gray(path)}${movedNote}`);
+
+    await setTimeout(DOWNLOAD_DELAY_MS);
   }
 
-  const folder = context.folders.get(invoice.department_id) ?? FALLBACK_FOLDER;
-  const path = invoicePath(context.output, folder, invoice);
-  const pdf = await context.client.downloadPdf(invoice.id);
-  await writeAtomic(path, pdf);
+  if (attachmentsChanged) {
+    const zip = await context.client.downloadAttachments(invoice.id);
+    await writeAtomic(zipPath, zip);
+    Logger.info(`Downloaded ${chalk.bold(invoice.number)} ${chalk.blue('(attachments)')} to ${chalk.gray(zipPath)}`);
 
-  let movedNote = '';
-  if (saved && saved.path !== path) {
+    if (moved) {
+      await rm(attachmentsPath(saved.path), { force: true });
+    }
+
+    await setTimeout(DOWNLOAD_DELAY_MS);
+  }
+
+  if (moved) {
     await context.metadata.remove(saved);
-    movedNote = chalk.gray(` (moved from ${saved.path})`);
   }
 
   // After `remove()`: a number change keeps the invoice in the same month file under the same id
@@ -192,11 +221,11 @@ async function syncInvoice(context: SyncContext, invoice: Invoice, type: Invoice
   // The same invoice can come up again later in this run when the listing shifts
   context.pdfPaths.set(invoice.id, [path]);
 
-  Logger.info(`Downloaded ${label} to ${chalk.gray(path)}${movedNote}`);
+  if (!pdfChanged && !attachmentsChanged) {
+    Logger.info(`Updated metadata of ${label}`);
+  }
 
-  await setTimeout(DOWNLOAD_DELAY_MS);
-
-  return 'downloaded';
+  return pdfChanged ? 'downloaded' : 'updated';
 }
 
 function warnMissing(context: SyncContext) {

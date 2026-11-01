@@ -1,4 +1,4 @@
-import { mkdir, readdir, rm } from 'node:fs/promises';
+import { mkdir, opendir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import { Logger } from '../logger.ts';
@@ -11,10 +11,10 @@ import { invoiceIdFromFile } from './paths.ts';
  */
 export async function scanInvoices(output: string): Promise<Map<number, string[]>> {
   await mkdir(output, { recursive: true });
-  const entries = await readdir(output, { recursive: true, withFileTypes: true });
+  const entries = await opendir(output, { recursive: true });
   const pdfPaths = new Map<number, string[]>();
 
-  for (const entry of entries) {
+  for await (const entry of entries) {
     if (!entry.isFile()) {
       continue;
     }

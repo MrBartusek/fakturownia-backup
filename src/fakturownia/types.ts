@@ -1,3 +1,5 @@
+export type Attachment = Record<string, unknown>;
+
 export type Invoice = {
   id: number;
   number: string;
@@ -5,6 +7,7 @@ export type Invoice = {
   issue_date: string;
   updated_at: string;
   department_id: number | null;
+  attachments: Attachment[];
   [key: string]: unknown;
 };
 

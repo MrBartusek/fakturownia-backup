@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { Config } from '../config.ts';
-import { isPdf } from '../utils.ts';
+import { isPdf, isZip, omit } from '../utils.ts';
 import { fetchWithRetries } from './fetch.ts';
 import type { Department, Invoice, InvoiceType } from './types.ts';
 
@@ -9,6 +9,11 @@ const PACKAGE_JSON = JSON.parse(readFileSync(PACKAGE_JSON_URL, 'utf8')) as { ver
 const USER_AGENT = `fakturownia-backup/${PACKAGE_JSON.version} (+https://github.com/MrBartusek/fakturownia-backup)`;
 
 export const INVOICES_PER_PAGE = 100;
+
+/**
+ * Public links to the attachment, never written to the backup.
+ */
+const ATTACHMENT_LINK_FIELDS = ['token', 'attachment_url'];
 
 export class FakturowniaClient {
   private readonly token: string;
@@ -33,11 +38,30 @@ export class FakturowniaClient {
       page: String(page),
       include_positions: 'true',
       income: type === 'income' ? 'yes' : 'no',
-      'additional_fields[invoice]':
-        'corrected_content_before,corrected_content_after,correction_reason,procedure_vat_margin,seller_bdo_no',
-      include: 'descriptions,recipients,issuers,transaction_orders,transaction_contracts,transaction_batches',
+      'additional_fields[invoice]': [
+        'corrected_content_before',
+        'corrected_content_after',
+        'correction_reason',
+        'procedure_vat_margin',
+        'seller_bdo_no',
+      ].join(','),
+      include: [
+        'descriptions',
+        'recipients',
+        'issuers',
+        'transaction_orders',
+        'transaction_contracts',
+        'transaction_batches',
+        'attachments',
+      ].join(','),
     });
-    return JSON.parse(body.toString()) as Invoice[];
+    const invoices = JSON.parse(body.toString()) as Invoice[];
+
+    for (const invoice of invoices) {
+      invoice.attachments = invoice.attachments.map((attachment) => omit(attachment, ATTACHMENT_LINK_FIELDS));
+    }
+
+    return invoices;
   }
 
   async downloadPdf(id: number): Promise<Buffer> {
@@ -48,6 +72,16 @@ export class FakturowniaClient {
     }
 
     return pdf;
+  }
+
+  async downloadAttachments(id: number): Promise<Buffer> {
+    const zip = await this.request(`/invoices/${id}/attachments_zip.json`, {}, 'application/zip');
+
+    if (!isZip(zip)) {
+      throw new Error(`/invoices/${id}/attachments_zip.json is not a ZIP with files in it`);
+    }
+
+    return zip;
   }
 
   private async request(
