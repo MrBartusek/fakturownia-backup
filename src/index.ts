@@ -9,6 +9,13 @@ import { loadState } from './sync/state.ts';
 import { syncInvoices, type SyncOptions } from './sync/sync.ts';
 
 async function main() {
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(signal, () => {
+      Logger.info(`Received ${signal}, shutting down...`);
+      process.exit(0);
+    });
+  }
+
   let config: Config;
   let client: FakturowniaClient;
   let options: SyncOptions;
@@ -46,13 +53,6 @@ async function main() {
       await run(client, config.output, options);
       logNextRun(runningJob);
     });
-
-    for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-      process.on(signal, () => {
-        Logger.info(`Received ${signal}, shutting down...`);
-        process.exit(0);
-      });
-    }
 
     if (downloadComplete) {
       logNextRun(job);
