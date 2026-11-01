@@ -1,6 +1,6 @@
 {
   "name": "fakturownia-backup",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Self-hosted backup of fakturownia.pl invoices",
   "author": "Bartosz Dokurno",
