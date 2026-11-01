@@ -8,6 +8,8 @@ const STATE_VERSION = 1;
 type SyncState = {
   lastRunAt: number | null;
 
+  lastSyncAt: number | null;
+
   complete: boolean;
   completedAt: number | null;
 
@@ -26,6 +28,7 @@ export async function loadState(output: string): Promise<SyncState> {
   }
 
   return {
+    lastSyncAt: saved?.lastSyncAt ?? null,
     complete: saved?.complete === true,
     completedAt: saved?.completedAt ?? null,
     failed: saved?.failed === true,

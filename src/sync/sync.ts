@@ -65,13 +65,16 @@ export type SyncOptions = {
 export async function syncInvoices(client: FakturowniaClient, output: string, options: SyncOptions) {
   await setTimeout(DOWNLOAD_DELAY_MS);
   const startTime = performance.now();
+  const startedAt = Math.floor(Date.now() / 1000);
   const [state, departments, pdfPaths] = await Promise.all([
     loadState(output),
     client.listDepartments(),
     scanInvoices(output),
   ]);
 
-  const fullListing = options.full || !state.complete || state.failed;
+  const { lastSyncAt } = state;
+  const fullListing = options.full || lastSyncAt === null;
+  const handledUntil = fullListing ? 0 : lastSyncAt;
   Logger.info(
     fullListing ? `Starting ${chalk.yellow.bold('full')} invoices sync job...` : 'Starting invoices sync job...',
   );
@@ -89,21 +92,23 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
 
   try {
     for (const type of INVOICE_TYPES) {
-      await syncInvoiceType(context, type, fullListing);
+      await syncInvoiceType(context, type, handledUntil);
     }
     finished = true;
   } finally {
-    // State first: if the flush below fails too, the next run still knows to list everything
+    // Metadata first: if this fails, `lastSyncAt` stays put and the next run lists these invoices again
+    await context.metadata.flush();
+
     const now = Math.floor(Date.now() / 1000);
     const completedNow = fullListing && finished;
     await saveState(output, {
+      lastSyncAt: finished ? startedAt : lastSyncAt,
       complete: state.complete || completedNow,
       completedAt: completedNow ? now : state.completedAt,
       failed: !finished,
       failedAt: finished ? state.failedAt : now,
       lastRunAt: now,
     });
-    await context.metadata.flush();
   }
 
   if (fullListing) {
@@ -121,7 +126,7 @@ export async function syncInvoices(client: FakturowniaClient, output: string, op
   Logger.info(`Sync done: ${downloaded} downloaded, ${updated} updated in ${seconds}s`);
 }
 
-async function syncInvoiceType(context: SyncContext, type: InvoiceType, fullListing: boolean) {
+async function syncInvoiceType(context: SyncContext, type: InvoiceType, handledUntil: number) {
   let page = 1;
   while (true) {
     Logger.info(`Fetching page ${page} of ${type} invoices...`);
@@ -131,9 +136,10 @@ async function syncInvoiceType(context: SyncContext, type: InvoiceType, fullList
 
     const lastPage = invoices.length < INVOICES_PER_PAGE;
 
-    // Invoices come newest change first, so a page without changes means the rest is unchanged too
-    const restUnchanged = !fullListing && !changed;
-    if (lastPage || restUnchanged) {
+    // Invoices come newest change first, so everything after this page was handled by the last successful run
+    const oldestChange = Date.parse(invoices.at(-1)?.updated_at ?? '') / 1000;
+    const restHandled = !changed && oldestChange < handledUntil;
+    if (lastPage || restHandled) {
       return;
     }
 
