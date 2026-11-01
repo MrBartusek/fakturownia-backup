@@ -7,6 +7,20 @@
 
 Na ten moment obsługujemy tylko pobieranie faktur na dysk lokalny. Jeśli chcesz wysyłać je do usługi chmurowej, zalecamy użycie [rclone](https://rclone.org/).
 
+```sh
+fakturownia/
+├── .state.json # plik wewnętrzny programu
+└── FIRMA/ # skrót działu
+    └── 2026/
+        ├── 2026-09/
+        │   ├── .metadata.json # plik wewnętrzny programu
+        │   └── FV-12-09-2026_vat_412345678.pdf # zwykła faktura
+        └── 2026-10/
+            ├── .metadata.json # plik wewnętrzny programu
+            ├── FV-3-10-2026_vat_412345999.pdf # faktura z KSeF
+            └── FV-3-10-2026_vat_412345999.zip # jej załączniki: XML i UPO
+```
+
 ## Jak stworzyć plik konfiguracyjny
 
 [Przykładowy plik konfiguracyjny](https://github.com/MrBartusek/fakturownia-backup/blob/main/conf.example.yml)
