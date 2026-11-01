@@ -32,10 +32,10 @@ async function main() {
 
   if (options.full) {
     Logger.warn(`Running with ${chalk.blue.bold('--full')}`);
-    await run(client, config.output, options);
+    await runOnce(client, config.output, options);
   } else if (!config.cron) {
     Logger.info('No cron schedule set, downloading once!');
-    await run(client, config.output, options);
+    await runOnce(client, config.output, options);
   } else {
     const job = new Cron(config.cron, { protect: true }, async (runningJob) => {
       await run(client, config.output, options);
@@ -73,12 +73,20 @@ function logNextRun(job: Cron) {
   }
 }
 
-async function run(client: FakturowniaClient, output: string, options: SyncOptions) {
+async function runOnce(client: FakturowniaClient, output: string, options: SyncOptions) {
+  const success = await run(client, output, options);
+  if (!success) {
+    process.exitCode = 1;
+  }
+}
+
+async function run(client: FakturowniaClient, output: string, options: SyncOptions): Promise<boolean> {
   try {
     await syncInvoices(client, output, options);
+    return true;
   } catch (error) {
     Logger.error('Invoices download job failed', error);
-    process.exitCode = 1;
+    return false;
   }
 }
 
