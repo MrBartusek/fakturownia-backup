@@ -3,7 +3,7 @@ import type { Department, Invoice } from '../fakturownia/types.ts';
 import { sanitizeFileName, splitDate, truncateToBytes } from '../utils.ts';
 
 export const FALLBACK_FOLDER = '_';
-const NO_NUMBER_NAME = 'bez-numeru';
+export const NO_NUMBER_NAME = 'bez-numeru';
 
 /**
  * Caps the invoice number, so the whole file name stays well under the 255-byte limit of most file systems.
@@ -33,7 +33,7 @@ export function invoicePath(output: string, folder: string, invoice: Invoice): s
 }
 
 export function invoiceFileName(invoice: Invoice): string {
-  const invoiceNumber = sanitizeFileName(truncateToBytes(invoice.number, MAX_NUMBER_BYTES)) || NO_NUMBER_NAME;
+  const invoiceNumber = sanitizeFileName(truncateToBytes(invoice.number ?? '', MAX_NUMBER_BYTES)) || NO_NUMBER_NAME;
   return `${invoiceNumber}_${invoice.kind}_${invoice.id}.pdf`;
 }
 

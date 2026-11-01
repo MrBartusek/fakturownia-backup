@@ -9,7 +9,7 @@ import { Logger } from '../logger.ts';
 import { omit } from '../utils.ts';
 import { writeAtomic } from './files.ts';
 import { LINK_FIELDS, MetadataStore } from './metadata.ts';
-import { attachmentsPath, departmentFolders, FALLBACK_FOLDER, invoicePath } from './paths.ts';
+import { attachmentsPath, departmentFolders, FALLBACK_FOLDER, invoicePath, NO_NUMBER_NAME } from './paths.ts';
 import { scanInvoices } from './scan.ts';
 import { loadState, saveState } from './state.ts';
 
@@ -164,7 +164,9 @@ async function syncPage(context: SyncContext, invoices: Invoice[], type: Invoice
 async function syncInvoice(context: SyncContext, invoice: Invoice, type: InvoiceType): Promise<InvoiceResult> {
   const paths = context.pdfPaths.get(invoice.id) ?? [];
   const saved = await context.metadata.find(invoice.id, paths);
-  const label = `${chalk.bold(invoice.number)} ${chalk.yellow(`(${type})`)}`;
+  const invoiceNumber = chalk.bold(invoice.number ?? NO_NUMBER_NAME);
+  const typeColor = type === 'income' ? chalk.blue : chalk.yellow;
+  const label = `${invoiceNumber} ${typeColor(`(${type})`)}`;
 
   const invoiceUpdated = saved?.invoice.updated_at !== invoice.updated_at;
   const pdfChanged = invoiceUpdated && (!saved || pdfDiffers(saved.invoice, invoice));
@@ -202,7 +204,7 @@ async function syncInvoice(context: SyncContext, invoice: Invoice, type: Invoice
   if (attachmentsChanged) {
     const zip = await context.client.downloadAttachments(invoice.id);
     await writeAtomic(zipPath, zip);
-    Logger.info(`Downloaded ${chalk.bold(invoice.number)} ${chalk.blue('(attachments)')} to ${chalk.gray(zipPath)}`);
+    Logger.info(`Downloaded ${invoiceNumber} ${typeColor('(attachments)')} to ${chalk.gray(zipPath)}`);
 
     if (moved) {
       await rm(attachmentsPath(saved.path), { force: true });

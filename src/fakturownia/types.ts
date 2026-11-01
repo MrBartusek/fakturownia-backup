@@ -2,7 +2,7 @@ export type Attachment = Record<string, unknown>;
 
 export type Invoice = {
   id: number;
-  number: string;
+  number: string | null;
   kind: string;
   issue_date: string;
   updated_at: string;
